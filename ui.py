@@ -309,6 +309,8 @@ def build_detail(mgr: VaMPackageManager, pid: str) -> list:
     blank()
     sep()
 
+    owned: set = set(info["all_deps"]) | {pid}
+
     # ── Direct dependencies ───────────────────────────────────────────────
     row(f"  Direct dependencies ({len(info['direct_deps'])}):", C_ACCENT, True)
     if info["direct_deps"]:
@@ -319,7 +321,7 @@ def build_detail(mgr: VaMPackageManager, pid: str) -> list:
                 col = C_DANGER
             else:
                 users = mgr.get_dependents(d)
-                others = users - {pid}
+                others = users - owned
                 n = len(others)
                 if n == 0:
                     status = "[ok | only you]"
@@ -345,7 +347,7 @@ def build_detail(mgr: VaMPackageManager, pid: str) -> list:
                 tag = "[MISSING]"
                 col = C_DANGER
             else:
-                others = mgr.get_dependents(dep) - {pid}
+                others = mgr.get_dependents(dep) - owned
                 n = len(others)
                 tag = "[ok | only you]" if n == 0 else f"[ok | +{n} others]"
                 col = C_OK if n == 0 else C_WARN

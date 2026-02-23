@@ -520,19 +520,44 @@ class VaMPackageManager:
         if pid not in self.packages:
             return {}
         dependents = self.get_dependents(pid)
-        to_delete = [pid]
+
+        if not with_deps:
+            total_mb = self.packages[pid].stat().st_size / (1024 * 1024)
+            return {
+                "target": pid,
+                "dependents": sorted(dependents),
+                "to_delete": [pid],
+                "keep_deps": [],
+                "delete_deps": [],
+                "total_mb": total_mb,
+            }
+
+        # Collect all transitive deps that are actually installed
+        all_deps = {
+            dep for dep in self.get_dependencies(pid, recursive=True)
+            if dep in self.packages
+        }
+
+        # A dep is safe to delete when every package depends on it is already scheduled for deletion.
+        to_delete: set = {pid}
+        changed = True
+        while changed:
+            changed = False
+            for dep in all_deps - to_delete:
+                # Dependents of this dep that would survive the delete
+                survivors = self.get_dependents(dep) - to_delete
+                if not survivors:
+                    to_delete.add(dep)
+                    changed = True
+
+        # Deps in the closure that are kept because something external needs them
         keep_deps = []
-        delete_deps_list = []
-        if with_deps:
-            for dep in self.get_dependencies(pid, recursive=True):
-                if dep not in self.packages:
-                    continue
-                others = self.get_dependents(dep) - {pid}
-                if others:
-                    keep_deps.append((dep, sorted(others)))
-                else:
-                    delete_deps_list.append(dep)
-                    to_delete.append(dep)
+        for dep in sorted(all_deps - to_delete):
+            survivors = sorted(self.get_dependents(dep) - to_delete)
+            keep_deps.append((dep, survivors))
+
+        delete_deps = sorted(all_deps & to_delete - {pid})
+
         total_mb = sum(
             self.packages[p].stat().st_size / (1024 * 1024)
             for p in to_delete
@@ -543,7 +568,7 @@ class VaMPackageManager:
             "dependents": sorted(dependents),
             "to_delete": sorted(to_delete),
             "keep_deps": keep_deps,
-            "delete_deps": sorted(delete_deps_list),
+            "delete_deps": delete_deps,
             "total_mb": total_mb,
         }
 

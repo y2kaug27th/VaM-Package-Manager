@@ -19,6 +19,16 @@ An interactive terminal UI for managing Virt-A-Mate `.var` packages — browse y
 
 ---
 
+## Requirements
+ 
+On **Windows**, `curses` is not included with Python. Install it first:
+ 
+```bash
+pip install windows-curses
+```
+
+---
+
 ## Usage
 
 ```bash

@@ -1,7 +1,7 @@
 import curses, textwrap
 from typing import Optional
 
-from scanner import VaMPackageManager
+from .scanner import VaMPackageManager
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -123,6 +123,16 @@ def clamp(v, lo, hi):
     return max(lo, min(hi, v))
 
 
+def fuzzy_match(pattern: str, text: str) -> bool:
+    """True if all characters in 'pattern' appear in 'text' in order."""
+    if not pattern:
+        return True
+    pattern = pattern.lower()
+    text = text.lower()
+    it = iter(text)
+    return all(c in it for c in pattern)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  POPUPS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -187,7 +197,10 @@ class ListPanel:
 
     def apply_filter(self, s: str):
         self.filter_str = s.lower()
-        self.items = [i for i in self.all_items if self.filter_str in i.lower()]
+        if not self.filter_str:
+            self.items = list(self.all_items)
+        else:
+            self.items = [i for i in self.all_items if fuzzy_match(self.filter_str, i)]
         self.cursor = 0
         self.scroll = 0
 

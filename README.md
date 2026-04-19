@@ -19,21 +19,46 @@ An interactive terminal UI for managing Virt-A-Mate `.var` packages — browse y
 
 ---
 
-## Requirements
- 
-On **Windows**, `curses` is not included with Python. Install it first:
- 
+## Installation
+
+### From PyPI (Recommended)
+If you have [pipx](https://github.com/pypa/pipx) installed:
 ```bash
-pip install windows-curses
+pipx install varlens-tui
 ```
+
+or just using pip:
+```bash
+pip install varlens-tui
+```
+
+### From Source (Run without installing)
+```bash
+git clone https://github.com/y2kaug27th/VarLens.git
+cd VarLens
+python -m varlens
+```
+
+> [!IMPORTANT]
+> **Windows Users**: If running from source, you must manually install the curses library:
+> ```bash
+> pip install windows-curses
+> ```
 
 ---
 
 ## Usage
 
+If installed via **PyPI**:
 ```bash
-python VarLens.py                     # Prompts for your VaM directory on launch
-python VarLens.py /path/to/VaM        # Or pass the path directly
+varlens                     # Launches the app
+varlens /path/to/VaM        # Launches with a specific path
+```
+
+If running from **Source**:
+```bash
+python -m varlens           # Launches the app from the project root
+python -m varlens /path/to/VaM
 ```
 
 ---

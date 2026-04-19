@@ -1,12 +1,12 @@
 import os, sys, curses
 from typing import Optional
 
-from scanner import VaMPackageManager
-from ui import (
+from .scanner import VaMPackageManager
+from .ui import (
     A, addstr, init_colors,
     C_ACCENT, C_BORDER, C_DIM, C_DANGER, C_HEADER, C_TITLE, C_WARN,
 )
-from app import App
+from .app import App
 
 
 # ─────────────────────────────────────────────────────────────────────────────

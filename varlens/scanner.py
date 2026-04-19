@@ -1,4 +1,5 @@
-import os, json, zipfile, re, sqlite3
+import os, json, zipfile, re, sqlite3, threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from collections import defaultdict
 from typing import Optional
@@ -309,39 +310,61 @@ class VaMPackageManager:
         self.vam_dir = Path(vam_dir)
         self.packages: dict = find_all_vars(str(self.vam_dir))
         self._rdeps_cache: Optional[dict] = None
+        self._lock = threading.Lock()
 
         cache = PackageCache(self.vam_dir)
         known_filenames = {p.name for p in self.packages.values()}
         cache.prune(known_filenames)
 
         total = len(self.packages)
-        scanned = 0
-        cached = 0
-
+        self._scanned = 0
+        self._cached = 0
         self._deps_cache: dict = {}
+
+        # First, separate cached from needs-scanning
+        to_scan = []
         for pid, path in self.packages.items():
             refs = cache.lookup(path)
             if refs is not None:
-                cached += 1
+                self._cached += 1
+                self._process_refs(pid, refs)
+                if progress_cb and self._cached % 10 == 0:
+                    progress_cb(0, self._cached, total, path.name)
             else:
-                meta_refs = extract_refs_from_meta(path)
-                if meta_refs:
-                    refs = meta_refs - {pid}
-                else:
-                    refs = extract_refs_from_var(path) - {pid}
-                cache.store(path, refs)
-                scanned += 1
+                to_scan.append((pid, path))
 
-            if progress_cb:
-                progress_cb(scanned, cached, total, path.name)
-
-            direct: set = set()
-            for ref in refs:
-                if ref != pid:
-                    direct.add(resolve_ref(ref, self.packages))
-            self._deps_cache[pid] = direct
+        # Parallel scan for the rest
+        if to_scan:
+            with ThreadPoolExecutor() as executor:
+                futures = {executor.submit(self._scan_package, pid, path): (pid, path) for pid, path in to_scan}
+                for future in as_completed(futures):
+                    pid, path, refs = future.result()
+                    with self._lock:
+                        cache.store(path, refs)
+                        self._scanned += 1
+                        self._process_refs(pid, refs)
+                        if progress_cb:
+                            progress_cb(self._scanned, self._cached, total, path.name)
+        elif progress_cb:
+             # If everything was cached, still trigger a final progress update
+             progress_cb(0, self._cached, total, "Done")
 
         cache.close()
+
+    def _scan_package(self, pid: str, path: Path):
+        meta_refs = extract_refs_from_meta(path)
+        if meta_refs:
+            refs = meta_refs - {pid}
+        else:
+            refs = extract_refs_from_var(path) - {pid}
+        return pid, path, refs
+
+    def _process_refs(self, pid: str, refs: set):
+        direct: set = set()
+        for ref in refs:
+            if ref != pid:
+                direct.add(resolve_ref(ref, self.packages))
+        self._deps_cache[pid] = direct
 
     # ── forward deps ──────────────────────────────────────────────────────────
 

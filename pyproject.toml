@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "varlens-tui"
+version = "0.1.1"
+authors = [
+  { name="y2kaug27th" },
+]
+description = "An interactive TUI for managing Virt-A-Mate .var packages"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text="MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Environment :: Console :: Curses",
+]
+dependencies = [
+    "windows-curses; sys_platform == 'win32'",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/y2kaug27th/VarLens"
+
+[project.scripts]
+varlens = "varlens.main:main"

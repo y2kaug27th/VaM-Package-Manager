@@ -1,8 +1,8 @@
 import curses
 from typing import Optional
 
-from scanner import VaMPackageManager
-from ui import (
+from .scanner import VaMPackageManager
+from .ui import (
     A, addstr, build_detail, clamp, confirm_popup, C_ACCENT, C_BORDER,
     C_DANGER, C_DIM, C_OK, C_SEL, C_WARN, DetailPanel, draw_box, draw_footer,
     draw_header, ListPanel, popup,
